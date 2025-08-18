@@ -1,0 +1,172 @@
+version: "3.1"
+
+intents:
+  - greet
+  - goodbye
+  - affirm
+  - deny
+  - mood_great
+  - mood_unhappy
+  - bot_challenge
+  - show_internships
+  - choose_internship
+  - apply_internship
+  - internship_info
+
+entities:
+  - internship_name
+  - internship_domain
+
+slots:
+  internship_name:
+    type: text
+    mappings:
+    - type: from_entity
+      entity: internship_name
+  internship_domain:
+    type: text
+    mappings:
+    - type: from_entity
+      entity: internship_domain
+  full_name:
+    type: text
+    mappings:
+    - type: from_text
+  email:
+    type: text
+    mappings:
+    - type: from_text
+  phone:
+    type: text
+    mappings:
+    - type: from_text
+  university:
+    type: text
+    mappings:
+    - type: from_text
+  graduation_year:
+    type: text
+    mappings:
+    - type: from_text
+  skills:
+    type: text
+    mappings:
+    - type: from_text
+  motivation:
+    type: text
+    mappings:
+    - type: from_text
+
+forms:
+  apply_internship_form:
+    required_slots:
+      - full_name
+      - email
+      - phone
+      - university
+      - graduation_year
+      - skills
+      - motivation
+
+responses:
+  utter_welcome_internships:
+    - text: |
+        Welcome! 👋  
+        We are excited to announce that our company is offering internship opportunities in various domains.  
+        Please choose one of the following to learn more:
+      buttons:
+        - title: "Full-Stack Web Development"
+          payload: '/choose_internship{{"internship_name":"Full-Stack Web Development"}}'
+        - title: "Mobile App Development"
+          payload: '/choose_internship{{"internship_name":"Mobile App Development"}}'
+        - title: "UI/UX Design & Prototyping"
+          payload: '/choose_internship{{"internship_name":"UI/UX Design & Prototyping"}}'
+        - title: "Data Science & Machine Learning"
+          payload: '/choose_internship{{"internship_name":"Data Science & Machine Learning"}}'
+        - title: "Cybersecurity & Ethical Hacking"
+          payload: '/choose_internship{{"internship_name":"Cybersecurity & Ethical Hacking"}}'
+
+  utter_greet:
+    - text: "Hey! How are you?"
+
+  utter_cheer_up:
+    - text: "Here is something to cheer you up:"
+      image: "https://i.imgur.com/nGF1K8f.jpg"
+
+  utter_did_that_help:
+    - text: "Did that help you?"
+
+  utter_happy:
+    - text: "Great, carry on!"
+
+  utter_goodbye:
+    - text: "Bye"
+
+  utter_iamabot:
+    - text: "I am a bot, powered by Rasa."
+
+  utter_internship_options:
+    - text: |
+        Here are our available internship positions:
+      buttons:
+        - title: "Full-Stack Web Development"
+          payload: '/choose_internship{{"internship_name":"Full-Stack Web Development"}}'
+        - title: "Mobile App Development"
+          payload: '/choose_internship{{"internship_name":"Mobile App Development"}}'
+        - title: "UI/UX Design & Prototyping"
+          payload: '/choose_internship{{"internship_name":"UI/UX Design & Prototyping"}}'
+        - title: "Data Science & Machine Learning"
+          payload: '/choose_internship{{"internship_name":"Data Science & Machine Learning"}}'
+        - title: "Cybersecurity & Ethical Hacking"
+          payload: '/choose_internship{{"internship_name":"Cybersecurity & Ethical Hacking"}}'
+
+  utter_internship_description:
+    - text: |
+        {internship_name} Internship
+        
+        Duration: 3-6 months
+        Location: Remote/Hybrid
+        Stipend: Competitive
+        
+        Would you like to apply for this position?
+      buttons:
+        - title: "Apply Now"
+          payload: '/apply_internship'
+        - title: "View Other Internships"
+          payload: '/show_internships'
+        - title: "Back to Main Menu"
+          payload: '/greet'
+
+  utter_apply_form_start:
+    - text: |
+        Great! Let's start your application for {internship_name}.
+        Please fill out the following form:
+
+  utter_ask_full_name:
+    - text: "What is your full name?"
+
+  utter_ask_email:
+    - text: "What is your email address?"
+
+  utter_ask_phone:
+    - text: "What is your phone number?"
+
+  utter_ask_university:
+    - text: "What university are you currently attending?"
+
+  utter_ask_graduation_year:
+    - text: "What year do you expect to graduate?"
+
+  utter_ask_skills:
+    - text: "What technical skills do you have? (e.g., Python, JavaScript, design tools)"
+
+  utter_ask_motivation:
+    - text: "Why are you interested in this internship? (Brief motivation statement)"
+
+actions:
+  - action_save_application
+  - action_get_internship_info
+
+session_config:
+  session_expiration_time: 60
+  carry_over_slots_to_new_session: true

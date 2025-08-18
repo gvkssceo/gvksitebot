@@ -1,0 +1,67 @@
+version: "3.1"
+
+stories:
+
+- story: happy path
+  steps:
+    - intent: greet
+    - action: utter_greet
+    - intent: mood_great
+    - action: utter_happy
+
+- story: sad path 1
+  steps:
+    - intent: greet
+    - action: utter_greet
+    - intent: mood_unhappy
+    - action: utter_cheer_up
+    - action: utter_did_that_help
+    - intent: affirm
+    - action: utter_happy
+
+- story: sad path 2
+  steps:
+    - intent: greet
+    - action: utter_greet
+    - intent: mood_unhappy
+    - action: utter_cheer_up
+    - action: utter_did_that_help
+    - intent: deny
+    - action: utter_goodbye
+
+- story: internship selection
+  steps:
+    - intent: greet
+    - action: utter_welcome_internships
+    - intent: choose_internship
+    - action: action_get_internship_info
+    - intent: apply_internship
+    - action: utter_apply_form_start
+    - action: apply_internship_form
+    - active_loop: apply_internship_form
+    - active_loop: null
+    - action: action_save_application
+
+- story: show internships
+  steps:
+    - intent: show_internships
+    - action: utter_internship_options
+
+- story: choose internship
+  steps:
+    - intent: choose_internship
+    - action: action_get_internship_info
+
+- story: apply for internship
+  steps:
+    - intent: apply_internship
+    - action: utter_apply_form_start
+    - action: apply_internship_form
+    - active_loop: apply_internship_form
+    - active_loop: null
+    - action: action_save_application
+
+- story: internship info request
+  steps:
+    - intent: internship_info
+    - action: action_get_internship_info

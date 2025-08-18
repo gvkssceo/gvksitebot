@@ -1,0 +1,33 @@
+version: "3.1"
+
+rules:
+
+- rule: Say goodbye anytime the user says goodbye
+  steps:
+  - intent: goodbye
+  - action: utter_goodbye
+
+- rule: Say 'I am a bot' anytime the user challenges
+  steps:
+  - intent: bot_challenge
+  - action: utter_iamabot
+ 
+- rule: Send welcome message on start
+  steps:
+    - intent: greet
+    - action: utter_welcome_internships
+
+- rule: Activate apply form
+  steps:
+    - intent: apply_internship
+    - action: apply_internship_form
+    - active_loop: apply_internship_form
+
+- rule: Submit form
+  steps:
+    - active_loop: apply_internship_form
+    - action: apply_internship_form
+    - active_loop: null
+    - slot_was_set:
+      - requested_slot: null
+    - action: action_save_application

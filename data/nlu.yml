@@ -1,0 +1,143 @@
+version: "3.1"
+
+nlu:
+- intent: greet
+  examples: |
+    - hey
+    - hello
+    - hi
+    - hello there
+    - good morning
+    - good evening
+    - moin
+    - hey there
+    - let's go
+    - hey dude
+    - goodmorning
+    - goodevening
+    - good afternoon
+
+- intent: goodbye
+  examples: |
+    - cu
+    - good by
+    - cee you later
+    - good night
+    - bye
+    - goodbye
+    - have a nice day
+    - see you around
+    - bye bye
+    - see you later
+
+- intent: affirm
+  examples: |
+    - yes
+    - y
+    - indeed
+    - of course
+    - that sounds good
+    - correct
+
+- intent: deny
+  examples: |
+    - no
+    - n
+    - never
+    - I don't think so
+    - don't like that
+    - no way
+    - not really
+
+- intent: mood_great
+  examples: |
+    - perfect
+    - great
+    - amazing
+    - feeling like a king
+    - wonderful
+    - I am feeling very good
+    - I am great
+    - I am amazing
+    - I am going to save the world
+    - super stoked
+    - extremely good
+    - so so perfect
+    - so good
+    - so perfect
+
+- intent: mood_unhappy
+  examples: |
+    - my day was horrible
+    - I am sad
+    - I don't feel very well
+    - I am disappointed
+    - super sad
+    - I'm so sad
+    - sad
+    - very sad
+    - unhappy
+    - not good
+    - not very good
+    - extremly sad
+    - so saad
+    - so sad
+
+- intent: bot_challenge
+  examples: |
+    - are you a bot?
+    - are you a human?
+    - am I talking to a bot?
+    - am I talking to a human?
+
+- intent: show_internships
+  examples: |
+    - show me internships
+    - what internships do you have
+    - internship opportunities
+    - available positions
+    - what positions are open
+    - show available internships
+    - internship openings
+    - what can I apply for
+    - show me the options
+    - what roles are available
+
+- intent: choose_internship
+  examples: |
+    - I want to learn about [Full-Stack Web Development](internship_name)
+    - tell me about [Mobile App Development](internship_name)
+    - [UI/UX Design](internship_name) internship
+    - [Data Science](internship_name) position
+    - [Cybersecurity](internship_name) internship
+    - I'm interested in [web development](internship_name)
+    - [mobile development](internship_name) sounds interesting
+    - [design](internship_name) internship
+    - [machine learning](internship_name) role
+    - [ethical hacking](internship_name) position
+
+- intent: apply_internship
+  examples: |
+    - I want to apply
+    - apply now
+    - apply for this position
+    - submit application
+    - I'd like to apply
+    - start application
+    - apply for internship
+    - submit my application
+    - I want to submit
+    - let me apply
+
+- intent: internship_info
+  examples: |
+    - what is this internship about
+    - tell me more
+    - more details
+    - what does this involve
+    - what will I learn
+    - what are the requirements
+    - what skills do I need
+    - what is the duration
+    - is this paid
+    - what is the location
