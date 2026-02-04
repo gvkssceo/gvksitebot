@@ -11,7 +11,8 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'backend'))
 from email_service import EmailService
 
 app = Flask(__name__)
-CORS(app)  # Enable CORS for all routes
+# CORS: allow www.gvkss.com to call this API (every response gets CORS headers)
+CORS(app, origins="*", methods=["GET", "POST", "OPTIONS"], allow_headers=["Content-Type"], supports_credentials=False)
 
 try:
     email_service = EmailService()
