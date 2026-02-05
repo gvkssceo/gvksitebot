@@ -20,7 +20,11 @@ class EmailService:
             print("Warning: GMAIL_APP_PASSWORD not set. Set it in Render Dashboard (Environment) or .env. Email sending will be disabled.")
         else:
             print("Email service: GMAIL_APP_PASSWORD is set.")
-        
+
+    def is_configured(self):
+        """Return True if email sending is configured (e.g. GMAIL_APP_PASSWORD set)."""
+        return bool(self.sender_password)
+
     def send_internship_application(self, application_data):
         """
         Send internship application email

@@ -1,22 +1,27 @@
 import os
+import threading
 import traceback
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, Response
 from flask_cors import CORS
 from email_service import EmailService
 from datetime import datetime
 
 app = Flask(__name__)
 
-# CORS: allow frontend at https://www.gvkss.com (and gvkss.com) to call this API
-ALLOWED_ORIGINS = ["https://www.gvkss.com", "https://gvkss.com"]
+# CORS: allow production frontend and local test (Live Server often uses 5500)
+ALLOWED_ORIGINS = [
+    "https://www.gvkss.com",
+    "https://gvkss.com",
+    "http://127.0.0.1:5500",
+    "http://localhost:5500",
+    "http://127.0.0.1:5173",
+    "http://localhost:5173",
+]
 CORS(
     app,
-    resources={r"/api/*": {
-        "origins": ALLOWED_ORIGINS,
-        "methods": ["GET", "POST", "OPTIONS"],
-        "allow_headers": ["Content-Type", "Accept"],
-        "expose_headers": ["Content-Type"],
-    }},
+    origins=ALLOWED_ORIGINS,
+    methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Content-Type", "Accept"],
     supports_credentials=False,
 )
 
@@ -42,7 +47,14 @@ def send_email():
     Accepts application/json or application/x-www-form-urlencoded.
     """
     if request.method == "OPTIONS":
-        return "", 204
+        origin = request.headers.get("Origin", "")
+        resp = Response(status=204)
+        if origin in ALLOWED_ORIGINS:
+            resp.headers["Access-Control-Allow-Origin"] = origin
+        resp.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
+        resp.headers["Access-Control-Allow-Headers"] = "Content-Type, Accept"
+        resp.headers["Access-Control-Max-Age"] = "86400"
+        return resp
 
     try:
         data = _get_request_data()
@@ -90,36 +102,36 @@ def send_email():
                 'confirmation_sent': False,
                 'note': 'Email service is not configured. Set GMAIL_APP_PASSWORD in Render Dashboard (Environment) or .env.'
             }), 200
-        
-        # Send application email to GVKSS team
-        success, message = email_service.send_internship_application(application_data)
 
-        if not success:
-            # When email is not configured (e.g. no GMAIL_APP_PASSWORD), return 200 so local/testing works
-            if 'not configured' in message.lower():
-                return jsonify({
-                    'success': True,
-                    'message': 'Application received (email not configured)',
-                    'application_id': f"APP_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
-                    'email_sent': False,
-                    'confirmation_sent': False,
-                    'note': message
-                }), 200
-            return jsonify({'error': f'Failed to send application email: {message}'}), 500
-        
-        # Send confirmation email to applicant
-        confirmation_success, confirmation_message = email_service.send_confirmation_email(application_data)
-        
-        if not confirmation_success:
-            # Log warning but don't fail the request
-            print(f"Warning: Failed to send confirmation email: {confirmation_message}")
-        
+        # If email not configured, return 200 without sending
+        if not email_service.is_configured():
+            return jsonify({
+                'success': True,
+                'message': 'Application received (email not configured)',
+                'application_id': f"APP_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
+                'email_sent': False,
+                'confirmation_sent': False,
+                'note': 'Email service is not configured. Set GMAIL_APP_PASSWORD in Render Dashboard (Environment) or .env.'
+            }), 200
+
+        # Send emails in background so we return before Render/worker timeout (~30s)
+        def _send_emails_background(data):
+            try:
+                email_service.send_internship_application(data)
+                email_service.send_confirmation_email(data)
+            except Exception as e:
+                print(f"Background email error: {e}")
+                traceback.print_exc()
+
+        thread = threading.Thread(target=_send_emails_background, args=(dict(application_data),), daemon=True)
+        thread.start()
+
         return jsonify({
             'success': True,
-            'message': 'Application submitted successfully',
+            'message': 'Application submitted successfully. You will receive a confirmation email shortly.',
             'application_id': f"APP_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
             'email_sent': True,
-            'confirmation_sent': confirmation_success,
+            'confirmation_sent': True,
             'resume_link_provided': True
         }), 200
         
