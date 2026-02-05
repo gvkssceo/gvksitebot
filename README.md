@@ -27,7 +27,7 @@ rasa run actions
 
 # Terminal 3: Start email backend service
 cd backend
-python app.py
+python app.py   # On Windows if "Python not found", use: py -3 app.py  or  run-backend.bat
 
 # Terminal 4: Start React frontend
 cd frontendx
@@ -40,7 +40,7 @@ npm start
 rasa run --enable-api --cors "*" --port 5005
 
 # Start only email service
-cd backend && python app.py
+cd backend && python app.py   # Windows: use  py -3 app.py  or  run-backend.bat  from repo root
 
 # Start only frontend
 cd frontend && npm start
@@ -52,6 +52,23 @@ cd frontend && npm start
 - **Node.js 16+** (for React frontend)
 - **Gmail Account** with App Password for SMTP
 - **Git** for version control
+
+### Windows: if `python` is not found
+
+Use the **Python launcher** or the project **venv**:
+
+```cmd
+REM From repo root (gvksitebot-main) - option 1: batch file
+run-backend.bat
+
+REM Option 2: Python launcher
+py -3 app.py
+
+REM Option 3: venv (after creating .venv and installing deps)
+.venv\Scripts\python.exe app.py
+```
+
+Default port is 5001 (or set `PORT=5001`). The API will be at `http://127.0.0.1:5001`.
 
 ## 🛠️ Installation & Setup
 
