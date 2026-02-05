@@ -1,22 +1,25 @@
+import os
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-import os
-from dotenv import load_dotenv
 
-load_dotenv()
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except Exception as e:
+    print(f"Note: dotenv not loaded ({e}). Using environment variables only (e.g. Render env vars).")
 
 class EmailService:
     def __init__(self):
         self.smtp_server = "smtp.gmail.com"
         self.smtp_port = 587
         self.sender_email = "dineshnampally393@gmail.com"
-        self.sender_password = os.getenv("GMAIL_APP_PASSWORD")  # Use app password from environment
-        
-        # Check if email service is properly configured
+        self.sender_password = os.environ.get("GMAIL_APP_PASSWORD", "").strip()
+
         if not self.sender_password:
-            print("Warning: GMAIL_APP_PASSWORD not found in environment variables.")
-            print("Email functionality will be limited. Please set GMAIL_APP_PASSWORD in your .env file.")
+            print("Warning: GMAIL_APP_PASSWORD not set. Set it in Render Dashboard (Environment) or .env. Email sending will be disabled.")
+        else:
+            print("Email service: GMAIL_APP_PASSWORD is set.")
         
     def send_internship_application(self, application_data):
         """

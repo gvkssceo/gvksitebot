@@ -7,4 +7,7 @@ services:
     startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --timeout 120 --workers 1
     envVars:
       - key: PYTHON_VERSION
-        value: 3.10.12
+        value: "3.10.12"
+      # Set GMAIL_APP_PASSWORD in Render Dashboard (Environment) to your Gmail App Password for email sending
+      - key: GMAIL_APP_PASSWORD
+        sync: false

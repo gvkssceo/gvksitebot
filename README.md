@@ -323,6 +323,20 @@ CMD ["python", "app.py"]
 - Check email delivery
 - Test responsive design on different devices
 
+### Test email API from Command Prompt (cmd)
+
+Use `curl` (Windows 10+). Start the backend first (e.g. `python app.py` on port 5001).
+
+```cmd
+REM Health check
+curl -s http://127.0.0.1:5001/api/health
+
+REM POST send-email (one line)
+curl -s -X POST http://127.0.0.1:5001/api/send-email -H "Content-Type: application/json" -d "{\"position\":\"Test\",\"fullName\":\"Test User\",\"email\":\"test@example.com\",\"phone\":\"+1\",\"university\":\"U\",\"graduationYear\":\"2025\",\"skills\":\"X\",\"motivation\":\"Y\",\"resume\":\"https://example.com/r.pdf\"}"
+```
+
+In **PowerShell** use `Invoke-WebRequest`; in **cmd** use `curl` as above.
+
 ### Automated Testing
 ```bash
 # Rasa testing
