@@ -16,6 +16,7 @@ ALLOWED_ORIGINS = [
     "http://localhost:5500",
     "http://127.0.0.1:5173",
     "http://localhost:5173",
+    "null",
 ]
 CORS(
     app,
@@ -117,10 +118,21 @@ def send_email():
         # Send emails in background so we return before Render/worker timeout (~30s)
         def _send_emails_background(data):
             try:
-                email_service.send_internship_application(data)
-                email_service.send_confirmation_email(data)
+                print("[Email] Sending application email to GVKSS...")
+                ok1, msg1 = email_service.send_internship_application(data)
+                if ok1:
+                    print("[Email] Application email sent successfully.")
+                else:
+                    print(f"[Email] Application email FAILED: {msg1}")
+
+                print("[Email] Sending confirmation email to applicant...")
+                ok2, msg2 = email_service.send_confirmation_email(data)
+                if ok2:
+                    print("[Email] Confirmation email sent successfully.")
+                else:
+                    print(f"[Email] Confirmation email FAILED: {msg2}")
             except Exception as e:
-                print(f"Background email error: {e}")
+                print(f"[Email] Background error: {e}")
                 traceback.print_exc()
 
         thread = threading.Thread(target=_send_emails_background, args=(dict(application_data),), daemon=True)

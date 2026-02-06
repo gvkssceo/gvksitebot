@@ -13,17 +13,19 @@ class EmailService:
     def __init__(self):
         self.smtp_server = "smtp.gmail.com"
         self.smtp_port = 587
-        self.sender_email = "dineshnampally393@gmail.com"
+        self.sender_email = os.environ.get("SENDER_EMAIL", "").strip()
         self.sender_password = os.environ.get("GMAIL_APP_PASSWORD", "").strip()
 
         if not self.sender_password:
             print("Warning: GMAIL_APP_PASSWORD not set. Set it in Render Dashboard (Environment) or .env. Email sending will be disabled.")
+        elif not self.sender_email:
+            print("Warning: SENDER_EMAIL not set. Set it in .env or environment (e.g. your@gmail.com).")
         else:
-            print("Email service: GMAIL_APP_PASSWORD is set.")
+            print("Email service: GMAIL_APP_PASSWORD and SENDER_EMAIL are set.")
 
     def is_configured(self):
-        """Return True if email sending is configured (e.g. GMAIL_APP_PASSWORD set)."""
-        return bool(self.sender_password)
+        """Return True if email sending is configured (GMAIL_APP_PASSWORD and SENDER_EMAIL set)."""
+        return bool(self.sender_password and self.sender_email)
 
     def send_internship_application(self, application_data):
         """

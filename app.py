@@ -12,7 +12,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'backend'))
 from email_service import EmailService
 
 app = Flask(__name__)
-# CORS: allow production frontend and local test (Live Server often uses 5500)
+# CORS: allow production frontend and local test (Live Server 5500, http.server 5173, or file://)
 ALLOWED_ORIGINS = [
     "https://www.gvkss.com",
     "https://gvkss.com",
@@ -20,6 +20,7 @@ ALLOWED_ORIGINS = [
     "http://localhost:5500",
     "http://127.0.0.1:5173",
     "http://localhost:5173",
+    "null",  # file:// when opened directly
 ]
 CORS(
     app,
@@ -33,7 +34,7 @@ CORS(
 @app.after_request
 def add_cors_headers(response):
     """Ensure CORS headers are on every response (including OPTIONS preflight)."""
-    origin = request.headers.get("Origin", "")
+    origin = request.headers.get("Origin") or ""
     if origin in ALLOWED_ORIGINS:
         response.headers["Access-Control-Allow-Origin"] = origin
     response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
@@ -134,10 +135,21 @@ def send_email():
         # Send emails in background so we return before Render/worker timeout (~30s)
         def _send_emails_background(data):
             try:
-                email_service.send_internship_application(data)
-                email_service.send_confirmation_email(data)
+                print("[Email] Sending application email to GVKSS...")
+                ok1, msg1 = email_service.send_internship_application(data)
+                if ok1:
+                    print("[Email] Application email sent successfully.")
+                else:
+                    print(f"[Email] Application email FAILED: {msg1}")
+
+                print("[Email] Sending confirmation email to applicant...")
+                ok2, msg2 = email_service.send_confirmation_email(data)
+                if ok2:
+                    print("[Email] Confirmation email sent successfully.")
+                else:
+                    print(f"[Email] Confirmation email FAILED: {msg2}")
             except Exception as e:
-                print(f"Background email error: {e}")
+                print(f"[Email] Background error: {e}")
                 traceback.print_exc()
 
         thread = threading.Thread(target=_send_emails_background, args=(dict(application_data),), daemon=True)
