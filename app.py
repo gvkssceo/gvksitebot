@@ -1,6 +1,5 @@
 import sys
 import os
-import threading
 import traceback
 from flask import Flask, request, jsonify, Response, make_response
 from flask_cors import CORS
@@ -132,28 +131,30 @@ def send_email():
                 'note': 'Email service is not configured. Set GMAIL_APP_PASSWORD in Render Dashboard (Environment) or .env.'
             }), 200
 
-        # Send emails in background so we return before Render/worker timeout (~30s)
-        def _send_emails_background(data):
-            try:
-                print("[Email] Sending application email to GVKSS...")
-                ok1, msg1 = email_service.send_internship_application(data)
-                if ok1:
-                    print("[Email] Application email sent successfully.")
-                else:
-                    print(f"[Email] Application email FAILED: {msg1}")
+        # Send emails in the request (sync) so they complete on Render before response
+        # Background thread was being killed on free tier after 200 was sent
+        print("[Email] Sending application email to GVKSS...")
+        ok1, msg1 = email_service.send_internship_application(application_data)
+        if not ok1:
+            print(f"[Email] Application email FAILED: {msg1}")
+            return jsonify({'error': f'Failed to send application email: {msg1}'}), 500
+        print("[Email] Application email sent successfully.")
 
-                print("[Email] Sending confirmation email to applicant...")
-                ok2, msg2 = email_service.send_confirmation_email(data)
-                if ok2:
-                    print("[Email] Confirmation email sent successfully.")
-                else:
-                    print(f"[Email] Confirmation email FAILED: {msg2}")
-            except Exception as e:
-                print(f"[Email] Background error: {e}")
-                traceback.print_exc()
-
-        thread = threading.Thread(target=_send_emails_background, args=(dict(application_data),), daemon=True)
-        thread.start()
+        print("[Email] Sending confirmation email to applicant...")
+        ok2, msg2 = email_service.send_confirmation_email(application_data)
+        if not ok2:
+            print(f"[Email] Confirmation email FAILED: {msg2}")
+            # Application email already sent; return 200 but note confirmation failed
+            return jsonify({
+                'success': True,
+                'message': 'Application submitted. Confirmation email could not be sent.',
+                'application_id': f"APP_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
+                'email_sent': True,
+                'confirmation_sent': False,
+                'resume_link_provided': True,
+                'note': msg2
+            }), 200
+        print("[Email] Confirmation email sent successfully.")
 
         return jsonify({
             'success': True,

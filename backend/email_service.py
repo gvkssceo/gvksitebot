@@ -105,8 +105,8 @@ class EmailService:
             html_part = MIMEText(html_content, 'html')
             msg.attach(html_part)
             
-            # Send email
-            with smtplib.SMTP(self.smtp_server, self.smtp_port) as server:
+            # Send email (timeout so we don't hang on Render's 30s request limit)
+            with smtplib.SMTP(self.smtp_server, self.smtp_port, timeout=12) as server:
                 server.starttls()
                 server.login(self.sender_email, self.sender_password)
                 server.send_message(msg)
@@ -185,8 +185,8 @@ class EmailService:
             html_part = MIMEText(html_content, 'html')
             msg.attach(html_part)
             
-            # Send email
-            with smtplib.SMTP(self.smtp_server, self.smtp_port) as server:
+            # Send email (timeout so we don't hang on Render's 30s request limit)
+            with smtplib.SMTP(self.smtp_server, self.smtp_port, timeout=12) as server:
                 server.starttls()
                 server.login(self.sender_email, self.sender_password)
                 server.send_message(msg)
