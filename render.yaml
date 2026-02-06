@@ -8,6 +8,8 @@ services:
     envVars:
       - key: PYTHON_VERSION
         value: "3.10.12"
-      # Set GMAIL_APP_PASSWORD in Render Dashboard (Environment) to your Gmail App Password for email sending
+      # Set these in Render Dashboard → Environment (do not commit real values)
+      - key: SENDER_EMAIL
+        sync: false
       - key: GMAIL_APP_PASSWORD
         sync: false
