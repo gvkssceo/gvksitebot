@@ -1,5 +1,8 @@
 import os
+import json
 import smtplib
+import urllib.request
+import urllib.error
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
@@ -15,35 +18,128 @@ class EmailService:
         self.smtp_port = 587
         self.sender_email = os.environ.get("SENDER_EMAIL", "").strip()
         self.sender_password = os.environ.get("GMAIL_APP_PASSWORD", "").strip()
+        self.resend_api_key = os.environ.get("RESEND_API_KEY", "").strip()
+        # EmailJS: service ID, template IDs, user ID (public key), private key (for server)
+        self.emailjs_service_id = os.environ.get("EMAILJS_SERVICE_ID", "").strip()
+        self.emailjs_template_application = os.environ.get("EMAILJS_TEMPLATE_APPLICATION", "").strip()
+        self.emailjs_template_confirmation = os.environ.get("EMAILJS_TEMPLATE_CONFIRMATION", "").strip()
+        self.emailjs_user_id = os.environ.get("EMAILJS_USER_ID", "").strip()
+        self.emailjs_private_key = os.environ.get("EMAILJS_PRIVATE_KEY", "").strip()
 
-        if not self.sender_password:
-            print("Warning: GMAIL_APP_PASSWORD not set. Set it in Render Dashboard (Environment) or .env. Email sending will be disabled.")
-        elif not self.sender_email:
-            print("Warning: SENDER_EMAIL not set. Set it in .env or environment (e.g. your@gmail.com).")
+        self._use_emailjs = all((
+            self.emailjs_service_id,
+            self.emailjs_template_application,
+            self.emailjs_template_confirmation,
+            self.emailjs_user_id,
+        ))
+
+        if self._use_emailjs:
+            print("Email service: Using EmailJS (service + templates + keys).")
+        elif self.resend_api_key and self.sender_email:
+            print("Email service: Using Resend API (works on Render when SMTP is blocked).")
+        elif self.sender_password and self.sender_email:
+            print("Email service: Using Gmail SMTP.")
         else:
-            print("Email service: GMAIL_APP_PASSWORD and SENDER_EMAIL are set.")
+            if not self.sender_email and not self._use_emailjs:
+                print("Warning: SENDER_EMAIL not set.")
+            if not self._use_emailjs and not self.resend_api_key and not self.sender_password:
+                print("Warning: Set EmailJS vars, RESEND_API_KEY, or GMAIL_APP_PASSWORD. See .env.example.")
 
     def is_configured(self):
-        """Return True if email sending is configured (GMAIL_APP_PASSWORD and SENDER_EMAIL set)."""
-        return bool(self.sender_password and self.sender_email)
+        """True if we can send (EmailJS, Resend, or Gmail configured)."""
+        if self._use_emailjs:
+            return True
+        return bool(self.sender_email and (self.resend_api_key or self.sender_password))
+
+    def _template_params(self, application_data):
+        """Build template params for EmailJS (use {{name}} in your EmailJS templates)."""
+        return {
+            "fullName": application_data.get("fullName", ""),
+            "email": application_data.get("email", ""),
+            "phone": application_data.get("phone", ""),
+            "position": application_data.get("position", ""),
+            "university": application_data.get("university", ""),
+            "graduationYear": application_data.get("graduationYear", ""),
+            "skills": application_data.get("skills", ""),
+            "motivation": application_data.get("motivation", ""),
+            "resume": application_data.get("resume_link", application_data.get("resume", "")),
+            "timestamp": application_data.get("timestamp", ""),
+        }
+
+    def _send_via_emailjs(self, template_id, template_params, to_email=None):
+        """Send email via EmailJS REST API (works on Render, no SMTP)."""
+        params = dict(template_params)
+        if to_email is not None:
+            params["to_email"] = to_email
+        payload = {
+            "service_id": self.emailjs_service_id,
+            "template_id": template_id,
+            "user_id": self.emailjs_user_id,
+            "template_params": params,
+        }
+        if self.emailjs_private_key:
+            payload["accessToken"] = self.emailjs_private_key
+        headers = {
+            "Content-Type": "application/json",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        }
+        req = urllib.request.Request(
+            "https://api.emailjs.com/api/v1.0/email/send",
+            data=json.dumps(payload).encode("utf-8"),
+            headers=headers,
+            method="POST",
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=15) as r:
+                return True, "Email sent successfully"
+        except urllib.error.HTTPError as e:
+            body = e.read().decode("utf-8", errors="replace") if e.fp else ""
+            msg = f"EmailJS API {e.code}: {body or e.reason}"
+            if e.code == 403 and "1010" in body:
+                msg += " Add EMAILJS_PRIVATE_KEY to .env (Dashboard → Account → Security). If it still fails, Cloudflare may block server IPs; use Resend instead for backend."
+            return False, msg
+
+    def _send_via_resend(self, to_email, subject, html):
+        """Send one email via Resend HTTP API (works when SMTP is blocked, e.g. on Render)."""
+        req = urllib.request.Request(
+            "https://api.resend.com/emails",
+            data=json.dumps({
+                "from": self.sender_email,
+                "to": [to_email],
+                "subject": subject,
+                "html": html,
+            }).encode("utf-8"),
+            headers={
+                "Authorization": f"Bearer {self.resend_api_key}",
+                "Content-Type": "application/json",
+            },
+            method="POST",
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=15) as r:
+                return True, "Email sent successfully"
+        except urllib.error.HTTPError as e:
+            body = e.read().decode("utf-8", errors="replace") if e.fp else ""
+            return False, f"Resend API {e.code}: {body or e.reason}"
 
     def send_internship_application(self, application_data):
         """
-        Send internship application email
+        Send internship application email to GVKSS.
+        Uses EmailJS, Resend, or Gmail SMTP depending on env config.
         """
-        # Check if email service is properly configured
-        if not self.sender_password:
-            return False, "Email service not configured. Please set GMAIL_APP_PASSWORD in your .env file."
-            
-        try:
-            # Create message
-            msg = MIMEMultipart('alternative')
-            msg['Subject'] = f"New Internship Application - {application_data['position']}"
-            msg['From'] = self.sender_email
-            msg['To'] = "gvkssceo@gvkss.com"
-            
-            # Create HTML content
-            html_content = f"""
+        if self._use_emailjs:
+            return self._send_via_emailjs(
+                self.emailjs_template_application,
+                self._template_params(application_data),
+                to_email="gvkssceo@gvkss.com",
+            )
+
+        if not self.sender_email:
+            return False, "SENDER_EMAIL not set."
+        if not self.resend_api_key and not self.sender_password:
+            return False, "Set EmailJS, RESEND_API_KEY, or GMAIL_APP_PASSWORD."
+
+        html_content = f"""
             <html>
             <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
                 <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
@@ -100,39 +196,45 @@ class EmailService:
             </body>
             </html>
             """
-            
-            # Attach HTML content
-            html_part = MIMEText(html_content, 'html')
-            msg.attach(html_part)
-            
-            # Send email (timeout so we don't hang on Render's 30s request limit)
+
+        if self.resend_api_key:
+            try:
+                return self._send_via_resend("gvkssceo@gvkss.com", f"New Internship Application - {application_data['position']}", html_content)
+            except Exception as e:
+                return False, str(e)
+
+        try:
+            msg = MIMEMultipart('alternative')
+            msg['Subject'] = f"New Internship Application - {application_data['position']}"
+            msg['From'] = self.sender_email
+            msg['To'] = "gvkssceo@gvkss.com"
+            msg.attach(MIMEText(html_content, 'html'))
             with smtplib.SMTP(self.smtp_server, self.smtp_port, timeout=12) as server:
                 server.starttls()
                 server.login(self.sender_email, self.sender_password)
                 server.send_message(msg)
-            
             return True, "Email sent successfully"
-            
         except Exception as e:
             return False, str(e)
-    
+
     def send_confirmation_email(self, application_data):
         """
-        Send confirmation email to applicant
+        Send confirmation email to applicant.
+        Uses EmailJS, Resend, or Gmail SMTP depending on env config.
         """
-        # Check if email service is properly configured
-        if not self.sender_password:
-            return False, "Email service not configured. Please set GMAIL_APP_PASSWORD in your .env file."
-            
-        try:
-            # Create message
-            msg = MIMEMultipart('alternative')
-            msg['Subject'] = f"Application Received - {application_data['position']} Internship"
-            msg['From'] = self.sender_email
-            msg['To'] = application_data['email']
-            
-            # Create HTML content
-            html_content = f"""
+        if self._use_emailjs:
+            return self._send_via_emailjs(
+                self.emailjs_template_confirmation,
+                self._template_params(application_data),
+                to_email=application_data.get("email", ""),
+            )
+
+        if not self.sender_email:
+            return False, "SENDER_EMAIL not set."
+        if not self.resend_api_key and not self.sender_password:
+            return False, "Set EmailJS, RESEND_API_KEY, or GMAIL_APP_PASSWORD."
+
+        html_content = f"""
             <html>
             <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
                 <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
@@ -180,19 +282,28 @@ class EmailService:
             </body>
             </html>
             """
-            
-            # Attach HTML content
-            html_part = MIMEText(html_content, 'html')
-            msg.attach(html_part)
-            
-            # Send email (timeout so we don't hang on Render's 30s request limit)
+
+        if self.resend_api_key:
+            try:
+                return self._send_via_resend(
+                    application_data['email'],
+                    f"Application Received - {application_data['position']} Internship",
+                    html_content,
+                )
+            except Exception as e:
+                return False, str(e)
+
+        try:
+            msg = MIMEMultipart('alternative')
+            msg['Subject'] = f"Application Received - {application_data['position']} Internship"
+            msg['From'] = self.sender_email
+            msg['To'] = application_data['email']
+            msg.attach(MIMEText(html_content, 'html'))
             with smtplib.SMTP(self.smtp_server, self.smtp_port, timeout=12) as server:
                 server.starttls()
                 server.login(self.sender_email, self.sender_password)
                 server.send_message(msg)
-            
             return True, "Confirmation email sent successfully"
-            
         except Exception as e:
             return False, str(e)
 
