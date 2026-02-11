@@ -8,8 +8,20 @@ services:
     envVars:
       - key: PYTHON_VERSION
         value: "3.10.12"
-      # Set these in Render Dashboard → Environment (do not commit real values)
+      # Set in Render Dashboard → Environment. Prefer EmailJS or Resend (SMTP blocked on free tier).
+      - key: EMAILJS_SERVICE_ID
+        sync: false
+      - key: EMAILJS_TEMPLATE_APPLICATION
+        sync: false
+      - key: EMAILJS_TEMPLATE_CONFIRMATION
+        sync: false
+      - key: EMAILJS_USER_ID
+        sync: false
+      - key: EMAILJS_PRIVATE_KEY
+        sync: false
       - key: SENDER_EMAIL
+        sync: false
+      - key: RESEND_API_KEY
         sync: false
       - key: GMAIL_APP_PASSWORD
         sync: false
